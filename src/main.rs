@@ -2,130 +2,71 @@ extern crate serde;
 extern crate serde_json;
 extern crate reqwest;
 extern crate rand;
+extern crate futures;
+extern crate tokio_core;
+extern crate telebot;
 #[macro_use]
 extern crate error_chain;
 #[macro_use]
 extern crate serde_derive;
-
+mod pocket;
 mod errors;
+mod config;
+use pocket::*;
+use config::*;
+use futures::*;
+use telebot::bot;
+use telebot::functions::*;
+use tokio_core::reactor::Core;
 
-use std::collections::HashMap;
-
-use errors::*;
-
-#[derive(Deserialize,Debug,Default)]
-pub struct Config {
-    access_token: String,
-    consumer_key: String,
-    article_count: u32,
-}
-
-pub struct Pocket {
-    config: Config,
-    client: reqwest::Client,
-}
-
-#[derive(Serialize,Deserialize,Debug,Default,Clone)]
-pub struct PocketItem {
-    #[serde(rename="item_id")]
-    id: String,
-    given_url: String,
-    given_title: String,
-    resolved_url: Option<String>,
-    resolved_title: Option<String>,
-    excerpt: Option<String>,
-    word_count: String,
-}
-
-#[derive(Deserialize,Debug,Default)]
-pub struct PocketResponse {
-    status: u32,
-    complete: u32,
-    list: HashMap<String, PocketItem>,
-    error: Option<u32>,
-}
-
-#[derive(Deserialize,Serialize,Debug,Default)]
-pub struct PocketModifyRequest {
-    consumer_key: String,
-    access_token: String,
-    actions: Vec<Action>,
-}
-
-#[derive(Deserialize,Serialize,Debug,Default)]
-pub struct Action {
-    item_id: String,
-    action: String,
-}
-
-
-static GET_API: &'static str = "https://getpocket.com/v3/get";
-static SEND_API: &'static str = "https://getpocket.com/v3/send";
-
-impl Pocket {
-    pub fn new(config: Config) -> Self {
-        let client = reqwest::Client::new().expect("cannot create client");
-        Self {
-            client: client,
-            config: config,
-        }
-    }
-
-    pub fn get_unread(&self) -> Result<Vec<PocketItem>> {
-        let mut params = HashMap::new();
-        params.insert("consumer_key", self.config.consumer_key.clone());
-        params.insert("access_token", self.config.access_token.clone());
-        params.insert("content_type", "article".to_owned());
-        params.insert("detailed_type", "simple".to_owned());
-        let response = self.client
-            .post(GET_API)
-            .form(&params)
-            .send()
-            .chain_err(|| "failed to retrive articles")?;
-
-        Ok(serde_json::from_reader::<reqwest::Response, PocketResponse>(response)
-               .chain_err(|| "failed to parse retrived data")?
-               .list
-               .into_iter()
-               .map(|(_, value)| value)
-               .collect())
-    }
-
-    pub fn archive(&self, items: &[&PocketItem]) -> Result<reqwest::Response> {
-        let actions: Vec<_> = items
-            .iter()
-            .map(|item| {
-                     Action {
-                         item_id: item.id.to_owned(),
-                         action: "archive".to_owned(),
-                     }
-                 })
-            .collect();
-        let params = PocketModifyRequest {
-            consumer_key: self.config.consumer_key.clone(),
-            access_token: self.config.access_token.clone(),
-            actions: actions,
-        };
-        self.client
-            .post(SEND_API)
-            .json(&params)
-            .send()
-            .chain_err(|| "failed to archive items")
-    }
-}
+use std::fs::File;
 
 fn main() {
-    let json = include_str!("../config.json");
-    let config = serde_json::from_str::<Config>(json).expect("cannot parse config.json");
+    let config_file = std::env::args()
+        .nth(1)
+        .expect("Need a Telegram bot token as argument");
 
-    let pocket = Pocket::new(config);
+    let json = File::open(config_file).unwrap();
+    let config = serde_json::from_reader::<File, Config>(json).expect("cannot parse config.json");
+    let pocket = Pocket::new(config.pocket);
+
+    let token = config.telegram.bot_token;
+    let chat_id = config.telegram.chat_id;
+
+    let mut lp = Core::new().unwrap();
+
+    let bot = bot::RcBot::new(lp.handle(), &token);
+    let mut msgs = vec![];
+
     let items = pocket.get_unread().expect("failed to retrive items.");
-
     let mut rng = rand::thread_rng();
-    let sample_items = rand::sample(&mut rng, &items, 2);
+    let sample_items = rand::sample(&mut rng, &items, pocket.article_count());
+
     for item in sample_items.iter().by_ref() {
-        println!("{}", serde_json::to_string_pretty(item).unwrap());
+        let url = match item.resolved_url {
+            Some(ref url) => url.clone(),
+            None => item.given_url.clone(),
+        };
+        let title = match item.resolved_title {
+            Some(ref title) => title.clone(),
+            None => item.given_title.clone(),
+        };
+        let excerpt = match item.excerpt {
+            Some(ref excerpt) => excerpt.clone() + "\n",
+            None => "".to_owned(),
+        };
+
+        msgs.push(bot.message(chat_id, format!("{}\n{}{}\n", title, excerpt, url)));
     }
+
+    let mut future = futures::future::ok(()).boxed() as
+                     Box<Future<Item = (), Error = telebot::Error>>;
+    for msg in msgs {
+        future = Box::new(future.and_then(|_| msg.send().and_then(|_| Ok(())))) as
+                 Box<Future<Item = (), Error = telebot::Error>>
+    }
+    lp.run(future).unwrap();
+
     let resp = pocket.archive(&sample_items).unwrap();
     println!("{:?}", resp);
 }
