@@ -4,3 +4,11 @@ version = "0.1.0"
 authors = ["BennyYip <yebenmy@protonmail.com>"]
 
 [dependencies]
+reqwest = "*"
+rand = "*"
+error-chain = "*"
+log = "*"
+serde = "0.9"
+serde_json = "0.9"
+serde_derive = "0.9"
+
