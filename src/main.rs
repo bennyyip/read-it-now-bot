@@ -24,7 +24,7 @@ use std::fs::File;
 fn main() {
     let config_file = std::env::args()
         .nth(1)
-        .expect("Need a Telegram bot token as argument");
+        .expect("Need a config file as argument");
 
     let json = File::open(config_file).unwrap();
     let config = serde_json::from_reader::<File, Config>(json).expect("cannot parse config.json");
@@ -43,10 +43,11 @@ fn main() {
     let sample_items = rand::sample(&mut rng, &items, pocket.article_count());
 
     for item in sample_items.iter().by_ref() {
-        let url = match item.resolved_url {
+        let original_link = match item.resolved_url {
             Some(ref url) => url.clone(),
             None => item.given_url.clone(),
         };
+        let pocket_link = format!("https://getpocket.com/a/read/{}", item.id);
         let title = match item.resolved_title {
             Some(ref title) => title.clone(),
             None => item.given_title.clone(),
@@ -56,7 +57,8 @@ fn main() {
             None => "".to_owned(),
         };
 
-        msgs.push(bot.message(chat_id, format!("{}\n{}{}\n", title, excerpt, url)));
+        msgs.push(bot.message(chat_id,
+                              format!("{}\n{}{}\n{}", title, excerpt, original_link, pocket_link)));
     }
 
     let mut future = futures::future::ok(()).boxed() as

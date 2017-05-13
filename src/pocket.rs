@@ -10,10 +10,10 @@ pub struct Pocket {
     client: reqwest::Client,
 }
 
-#[derive(Serialize,Deserialize,Debug,Default,Clone)]
+#[derive(Deserialize,Debug,Default,Clone)]
 pub struct PocketItem {
     #[serde(rename="item_id")]
-    id: String,
+    pub id: String,
     pub given_url: String,
     pub given_title: String,
     pub resolved_url: Option<String>,
@@ -30,14 +30,14 @@ pub struct PocketResponse {
     error: Option<u32>,
 }
 
-#[derive(Deserialize,Serialize,Debug,Default)]
+#[derive(Serialize,Debug,Default)]
 pub struct PocketModifyRequest {
     consumer_key: String,
     access_token: String,
     actions: Vec<Action>,
 }
 
-#[derive(Deserialize,Serialize,Debug,Default)]
+#[derive(Serialize,Debug,Default)]
 pub struct Action {
     item_id: String,
     action: String,
