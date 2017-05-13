@@ -3,6 +3,10 @@ name = "read-it-now-bot"
 version = "0.1.0"
 authors = ["BennyYip <yebenmy@protonmail.com>"]
 
+[[bin]]
+name = "rin"
+path = "src/main.rs"
+
 [dependencies]
 reqwest = "*"
 rand = "*"
