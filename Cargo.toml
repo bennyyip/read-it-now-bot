@@ -8,13 +8,13 @@ name = "rin"
 path = "src/main.rs"
 
 [dependencies]
+telebot = {path = "./telebot"}
 reqwest = "*"
 rand = "*"
 error-chain = "*"
 futures = "*"
 tokio-core = "*"
-telebot = "*"
-serde = "0.9"
-serde_json = "0.9"
-serde_derive = "0.9"
+serde = "*"
+serde_json = "*"
+serde_derive = "*"
 

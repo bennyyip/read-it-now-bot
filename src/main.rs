@@ -24,7 +24,7 @@ use std::fs::File;
 fn main() {
     let config_file = std::env::args()
         .nth(1)
-        .expect("Need a config file as argument");
+        .expect("need a config file as argument");
 
     let json = File::open(config_file).unwrap();
     let config = serde_json::from_reader::<File, Config>(json).expect("cannot parse config.json");
@@ -35,7 +35,8 @@ fn main() {
 
     let mut lp = Core::new().unwrap();
 
-    let bot = bot::RcBot::new(lp.handle(), &token);
+    let handle = lp.handle();
+    let bot = lp.run(bot::RcBot::new(handle, &token)).unwrap();
     let mut msgs = vec![];
 
     let items = pocket.get_unread().expect("failed to retrive items.");
