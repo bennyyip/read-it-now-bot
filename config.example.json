@@ -1,0 +1,12 @@
+{
+  "pocket": {
+    "access_token": "<access token>",
+    "consumer_key": "<consumer key>",
+    "article_count": 2
+  },
+
+  "telegram": {
+    "bot_token": "<bot token>",
+    "chat_id": <chat id>
+  }
+}
