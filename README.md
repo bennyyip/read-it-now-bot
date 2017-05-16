@@ -16,7 +16,7 @@ The compiled binary will be in: `./target/release/rin`
 
 ## Config 
 
-```json
+```
 // config.example.json
 {
   "pocket": {
@@ -27,7 +27,7 @@ The compiled binary will be in: `./target/release/rin`
 
   "telegram": {
     "bot_token": "<bot token>",
-    "chat_id": <chat id>
+    "chat_id": <chat_id>
   }
 }
 ```
