@@ -1,7 +1,8 @@
 # Read it Later Bot
 
-Pick random articles in your [Pocket](https://www.getpocket.com) list, and send it to you via a [telegram](https://t.me) bot. Then archive these articles.
-You may use crontab or systemd-timer to schedule this.
+Pick random articles in your [Pocket](https://www.getpocket.com) list, and send it to you via a [telegram](https://t.me) bot. Then archive these articles.  
+You may use crontab or systemd-timer to schedule this.  
+The purpose of this bot is to prevent you save articles to pocket and read it never, READ IT NOW!  
 
 
 ## Build
